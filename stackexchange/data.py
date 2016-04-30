@@ -265,8 +265,10 @@ if __name__ == '__main__':
     print('Reading data...')
     interactions, features, labels = read_data(posts_path)
 
+    output_fname = 'stackexchange_{}.npz'.format(args.dataset)
+
     print('Writing output...')
-    output_path = os.path.join(os.path.dirname(posts_path), 'data.npz')
+    output_path = os.path.join(os.path.dirname(posts_path), output_fname)
     serialize_data(output_path, interactions, features, labels)
 
     print('Done.')
