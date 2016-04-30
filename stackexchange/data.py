@@ -1,4 +1,5 @@
 import argparse
+import array
 import codecs
 import datetime
 import os
@@ -15,16 +16,6 @@ import progressbar
 import requests
 
 import scipy.sparse as sp
-
-
-def _get_raw_data(fname):
-
-    path = _get_data_path(fname)
-
-    if not os.path.isfile(path):
-        _download()
-
-    return codecs.open(path, 'r', encoding='utf-8')
 
 
 def _process_post_tags(tags_string):
@@ -48,8 +39,10 @@ def _read_interactions(post_data):
         try:
             user_id = int(datum['OwnerUserId'])
             question_id = int(datum['ParentId'])
-            time_created = time.mktime(datetime.datetime.strptime(datum['CreationDate'],
-                                                                  '%Y-%m-%dT%H:%M:%S.%f').timetuple())
+            time_created = time.mktime(datetime.datetime
+                                       .strptime(datum['CreationDate'],
+                                                 '%Y-%m-%dT%H:%M:%S.%f')
+                                       .timetuple())
         except KeyError:
             continue
 
@@ -83,9 +76,9 @@ class IncrementalSparseMatrix(object):
 
     def __init__(self):
 
-        self.row = []
-        self.col = []
-        self.data = []
+        self.row = array.array('i')
+        self.col = array.array('i')
+        self.data = array.array('f')
 
     def append(self, row, col, data):
 
@@ -127,12 +120,14 @@ class Dataset(object):
 
         for (question_id, question_tags) in question_features:
 
-            translated_question_id = self.question_mapping.setdefault(question_id,
-                                                                      len(self.question_mapping))
+            translated_question_id = (self.question_mapping
+                                      .setdefault(question_id,
+                                                  len(self.question_mapping)))
 
             for tag in question_tags:
-                translated_tag_id = self.tag_mapping.setdefault(tag,
-                                                                len(self.tag_mapping))
+                translated_tag_id = (self.tag_mapping
+                                     .setdefault(tag,
+                                                 len(self.tag_mapping)))
 
                 self.question_features.append(translated_question_id,
                                               translated_tag_id,
@@ -144,10 +139,12 @@ class Dataset(object):
 
         for (user_id, question_id, timestamp) in interactions:
 
-            translated_user_id = self.user_mapping.setdefault(user_id,
-                                                              len(self.user_mapping))
-            translated_question_id = self.question_mapping.setdefault(question_id,
-                                                                      len(self.question_mapping))
+            translated_user_id = (self.user_mapping
+                                  .setdefault(user_id,
+                                              len(self.user_mapping)))
+            translated_question_id = (self.question_mapping
+                                      .setdefault(question_id,
+                                                  len(self.question_mapping)))
 
             self.interactions.append(translated_user_id,
                                      translated_question_id,
@@ -176,13 +173,15 @@ def serialize_data(file_path, interactions, features, labels):
 
     for name, mat in (('interactions', interactions),
                       ('features', features)):
-        arrays['{}_{}'.format(name, 'shape')] = np.array(mat.shape, dtype=np.int32).flatten(),
+        arrays['{}_{}'.format(name, 'shape')] = (np.array(mat.shape,
+                                                          dtype=np.int32)
+                                                 .flatten()),
         arrays['{}_{}'.format(name, 'row')] = mat.row
         arrays['{}_{}'.format(name, 'col')] = mat.col
         arrays['{}_{}'.format(name, 'data')] = mat.data
 
     arrays['labels'] = labels
-        
+
     np.savez_compressed(file_path, **arrays)
 
 
